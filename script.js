@@ -22,6 +22,7 @@ const resultsContainer = document.getElementById('resultsContainer');
 const newQuizBtn = document.getElementById('newQuiz');
 const difficultyLevel = document.getElementById('difficultyLevel');
 const loadingScreen = document.getElementById('loadingScreen');
+const themeToggle = document.getElementById('themeToggle');
 
 // Handle file input
 fileInput.addEventListener('change', async (e) => {
@@ -39,6 +40,9 @@ fileInput.addEventListener('change', async (e) => {
             text = await file.text();
         }
         textInput.value = text;
+
+        const fileName = file.name || 'No file chosen';
+        e.target.parentElement.querySelector('.file-name').textContent = fileName;
 
         formGroup.classList.remove('loading');
     } catch (error) {
@@ -84,12 +88,12 @@ quizForm.addEventListener('submit', async (e) => {
     
     if (!text) {
         alert('Please enter some text or upload a file');
-        return;  // Return early before showing loading screen
+        return;
     }
     
-    if (isNaN(numQuestions) || numQuestions < 1) {
-        alert('Please enter a valid number of questions');
-        return;  // Return early before showing loading screen
+    if (isNaN(numQuestions) || numQuestions < 1 || numQuestions > 30) {
+        alert('Please enter a valid number of questions (1-30)');
+        return;
     }
     
     // Only show loading screen if we have valid input
@@ -220,22 +224,46 @@ function displayQuestion(question) {
     questionDiv.className = `question ${question.difficulty}`;
     
     questionDiv.innerHTML = `
-        <p class="question-text">
-            <span class="difficulty-badge ${question.difficulty}">${question.difficulty}</span>
-            ${question.question}
-        </p>
+        <div class="question-text">
+            <span class="question-number">${question.id}</span>
+            <div>
+                <span class="difficulty-badge ${question.difficulty}">${question.difficulty}</span>
+                ${question.question}
+            </div>
+        </div>
         <div class="options">
             ${question.options.map((option, index) => `
-                <div class="option">
+                <label class="option" for="q${question.id}o${index}">
                     <input type="radio" 
                            name="question${question.id}" 
                            value="${index}"
                            id="q${question.id}o${index}">
-                    <label for="q${question.id}o${index}">${option}</label>
-                </div>
+                    <span>${option}</span>
+                </label>
             `).join('')}
         </div>
     `;
+    
+    // Add click handler for the entire option box
+    const options = questionDiv.querySelectorAll('.option');
+    options.forEach(option => {
+        option.addEventListener('click', () => {
+            // Remove selected class from all options in this question
+            options.forEach(opt => opt.classList.remove('selected'));
+            
+            // Add selected class to clicked option
+            option.classList.add('selected');
+            
+            // Check the radio button
+            const radio = option.querySelector('input[type="radio"]');
+            radio.checked = true;
+            
+            // Add pulse animation
+            option.style.animation = 'none';
+            option.offsetHeight; // Trigger reflow
+            option.style.animation = 'selectPulse 0.3s ease';
+        });
+    });
     
     quizQuestions.appendChild(questionDiv);
 }
@@ -300,4 +328,20 @@ newQuizBtn.addEventListener('click', () => {
     fileInput.value = '';
     resultsSection.classList.add('hidden');
     quizForm.classList.remove('hidden');
+});
+
+// Theme toggle functionality
+function setTheme(theme) {
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('theme', theme);
+}
+
+// Initialize theme
+const savedTheme = localStorage.getItem('theme') || 'light';
+setTheme(savedTheme);
+
+themeToggle.addEventListener('click', () => {
+    const currentTheme = document.documentElement.getAttribute('data-theme');
+    const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+    setTheme(newTheme);
 });
